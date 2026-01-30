@@ -63,38 +63,35 @@ app.get('/attendance/:empId', async (c) => {
       return c.json({ message: 'No records found for this ID' }, 404);
     }
 
+    // NEW: Get the name from the first available record in the history
+    const personName = records[0].personName;
+
     const todayStr = new Date().toLocaleDateString('en-CA'); 
 
-    // 1. Filter for today's records only
     const todayRecords = records.filter(r => r.accessDate === todayStr);
-
-    // 2. Sort today's records by time (ascending: 06:00 -> 22:00)
     const sortedRecords = todayRecords.sort((a, b) => a.accessTime.localeCompare(b.accessTime));
 
-    // 3. Find EARLIEST morning record (First one in sorted list within window)
     const morning = sortedRecords.find(r => 
       r.accessTime >= "06:00:00" && r.accessTime <= "08:00:00"
     );
 
-    // 4. Find LATEST evening record (Last one in sorted list within window)
-    // .findLast() is perfect for getting the "latest" entry
     const evening = sortedRecords.findLast(r => 
       r.accessTime >= "17:29:00" && r.accessTime <= "22:00:00"
     );
 
-    // 5. Calculate hours worked
     let totalHours = null;
     if (morning && evening) {
       const start = new Date(`${morning.accessDate}T${morning.accessTime}`);
       const end = new Date(`${evening.accessDate}T${evening.accessTime}`);
-      totalHours = ((end.getTime() - start.getTime()) / (1000 * 60 * 60)).toFixed(2);
+      totalHours = (((end.getTime() - start.getTime()) / (1000 * 60 * 60)).toFixed(2));
     }
 
     return c.json({
       date: todayStr,
       employeeId: empId,
-      morningShift: morning || null, // Earliest
-      eveningShift: evening || null, // Latest
+      personName: personName, // Always included now!
+      morningShift: morning || null,
+      eveningShift: evening || null,
       totalHours: totalHours ? `${totalHours} hrs` : null
     });
 
