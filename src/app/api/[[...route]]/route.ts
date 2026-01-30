@@ -50,27 +50,6 @@ app.post('/attendance',
 );
 
 // 3. GET records for a specific employee
-// app.get('/attendance/:empId', async (c) => {
-//   const empId = c.req.param('empId');
-
-//   try {
-//     const records = await db
-//       .select()
-//       .from(attendance)
-//       .where(eq(attendance.employeeId, empId)); // Filters by employeeId
-
-//     if (records.length === 0) {
-//       return c.json({ message: 'No records found for this ID' }, 404);
-//     }else
-//     {
-      
-//     }
-
-//     return c.json(records);
-//   } catch (e) {
-//     return c.json({ error: 'Database query failed' }, 500);
-//   }
-// });
 app.get('/attendance/:empId', async (c) => {
   const empId = c.req.param('empId');
 
@@ -84,33 +63,40 @@ app.get('/attendance/:empId', async (c) => {
       return c.json({ message: 'No records found for this ID' }, 404);
     }
 
-    // 1. Get today's local date (YYYY-MM-DD)
     const todayStr = new Date().toLocaleDateString('en-CA'); 
 
-    // 2. Find Morning Record (06:00:00 - 08:00:00)
-    const morningRecord = records.find(r => 
-      r.accessDate === todayStr && 
+    // 1. Filter for today's records only
+    const todayRecords = records.filter(r => r.accessDate === todayStr);
+
+    // 2. Sort today's records by time (ascending: 06:00 -> 22:00)
+    const sortedRecords = todayRecords.sort((a, b) => a.accessTime.localeCompare(b.accessTime));
+
+    // 3. Find EARLIEST morning record (First one in sorted list within window)
+    const morning = sortedRecords.find(r => 
       r.accessTime >= "06:00:00" && r.accessTime <= "08:00:00"
     );
 
-    // 3. Find Evening Record (17:29:00 - 22:00:00)
-    const eveningRecord = records.find(r => 
-      r.accessDate === todayStr && 
+    // 4. Find LATEST evening record (Last one in sorted list within window)
+    // .findLast() is perfect for getting the "latest" entry
+    const evening = sortedRecords.findLast(r => 
       r.accessTime >= "17:29:00" && r.accessTime <= "22:00:00"
     );
 
-    // 4. Construct the response
-    const results = {
-      morning: morningRecord || null,
-      evening: eveningRecord || null
-    };
-
-    // 5. If neither exists, return a 404
-    if (!results.morning && !results.evening) {
-      return c.json({ message: 'No morning or evening records found for today' }, 404);
+    // 5. Calculate hours worked
+    let totalHours = null;
+    if (morning && evening) {
+      const start = new Date(`${morning.accessDate}T${morning.accessTime}`);
+      const end = new Date(`${evening.accessDate}T${evening.accessTime}`);
+      totalHours = ((end.getTime() - start.getTime()) / (1000 * 60 * 60)).toFixed(2);
     }
 
-    return c.json(results);
+    return c.json({
+      date: todayStr,
+      employeeId: empId,
+      morningShift: morning || null, // Earliest
+      eveningShift: evening || null, // Latest
+      totalHours: totalHours ? `${totalHours} hrs` : null
+    });
 
   } catch (e) {
     return c.json({ error: 'Database query failed' }, 500);
