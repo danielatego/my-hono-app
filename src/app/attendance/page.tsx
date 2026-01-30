@@ -15,7 +15,6 @@ export default async function AttendancePage() {
               <th className="px-4 py-2 font-medium text-gray-900 text-left">Name</th>
               <th className="px-4 py-2 font-medium text-gray-900 text-left">ID</th>
               <th className="px-4 py-2 font-medium text-gray-900 text-left">Date/Time</th>
-              <th className="px-4 py-2 font-medium text-gray-900 text-left">Result</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -24,11 +23,6 @@ export default async function AttendancePage() {
                 <td className="px-4 py-2 text-gray-700">{row.personName}</td>
                 <td className="px-4 py-2 text-gray-700">{row.employeeId}</td>
                 <td className="px-4 py-2 text-gray-700">{row.accessDateAndTime}</td>
-                <td className="px-4 py-2">
-                  <span className={`px-2 py-1 rounded text-xs ${row.authenticationResult === 'true' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                    {row.authenticationResult}
-                  </span>
-                </td>
               </tr>
             ))}
           </tbody>
