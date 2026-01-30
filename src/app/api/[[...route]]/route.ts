@@ -50,6 +50,27 @@ app.post('/attendance',
 );
 
 // 3. GET records for a specific employee
+// app.get('/attendance/:empId', async (c) => {
+//   const empId = c.req.param('empId');
+
+//   try {
+//     const records = await db
+//       .select()
+//       .from(attendance)
+//       .where(eq(attendance.employeeId, empId)); // Filters by employeeId
+
+//     if (records.length === 0) {
+//       return c.json({ message: 'No records found for this ID' }, 404);
+//     }else
+//     {
+      
+//     }
+
+//     return c.json(records);
+//   } catch (e) {
+//     return c.json({ error: 'Database query failed' }, 500);
+//   }
+// });
 app.get('/attendance/:empId', async (c) => {
   const empId = c.req.param('empId');
 
@@ -57,13 +78,40 @@ app.get('/attendance/:empId', async (c) => {
     const records = await db
       .select()
       .from(attendance)
-      .where(eq(attendance.employeeId, empId)); // Filters by employeeId
+      .where(eq(attendance.employeeId, empId));
 
     if (records.length === 0) {
       return c.json({ message: 'No records found for this ID' }, 404);
     }
 
-    return c.json(records);
+    // 1. Get today's local date (YYYY-MM-DD)
+    const todayStr = new Date().toLocaleDateString('en-CA'); 
+
+    // 2. Find Morning Record (06:00:00 - 08:00:00)
+    const morningRecord = records.find(r => 
+      r.accessDate === todayStr && 
+      r.accessTime >= "06:00:00" && r.accessTime <= "08:00:00"
+    );
+
+    // 3. Find Evening Record (17:29:00 - 22:00:00)
+    const eveningRecord = records.find(r => 
+      r.accessDate === todayStr && 
+      r.accessTime >= "17:29:00" && r.accessTime <= "22:00:00"
+    );
+
+    // 4. Construct the response
+    const results = {
+      morning: morningRecord || null,
+      evening: eveningRecord || null
+    };
+
+    // 5. If neither exists, return a 404
+    if (!results.morning && !results.evening) {
+      return c.json({ message: 'No morning or evening records found for today' }, 404);
+    }
+
+    return c.json(results);
+
   } catch (e) {
     return c.json({ error: 'Database query failed' }, 500);
   }
